@@ -66,7 +66,7 @@ WORKSPACE_PUB_DIR="${WORKSPACE_DIR_PREFIX}/share/public"
 mkdir -p "${WORKSPACE_DIR}"
 mkdir -p "${WORKSPACE_SHARE_DIR}"
 # Docker run command
-docker run -itd --gpus all --name "deep-${NAME}" --net=host -e SSH_PORT="${PORT}" -v "${WORKSPACE_DIR}":/root/workspace -v "${WORKSPACE_SHARE_DIR}":/root/share -v "${WORKSPACE_PUB_DIR}":/root/public ${DOCKER_IMAGE}
+docker run -itd --gpus all --ipc=host --net=host --name "deep-${NAME}" -e SSH_PORT="${PORT}" -v "${WORKSPACE_DIR}":/root/workspace -v "${WORKSPACE_SHARE_DIR}":/root/share -v "${WORKSPACE_PUB_DIR}":/root/public ${DOCKER_IMAGE}
 
 # Check if the port is already open
 if firewall-cmd --zone=public --query-port="${PORT}/tcp"; then
