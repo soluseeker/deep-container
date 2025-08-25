@@ -2,85 +2,87 @@ FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
 
 USER root
 
-ENV LANG=C.UTF-8 LC_ALL=C.UTF-8 LANGUAGE=C.UTF-8
-# Change software source
-RUN sed -i 's@/archive.ubuntu.com/@/mirrors.tuna.tsinghua.edu.cn/@g' /etc/apt/sources.list
+# --- 基本环境配置 ---
+# 设置持久环境变量
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LANGUAGE=C.UTF-8 \
+    TZ=Asia/Shanghai
 
-# Install necessary tools
+# 设置构建时参数
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt update && apt install -y \
-  sudo \
-  wget \
-  curl \
-  vim \
-  git \
-  build-essential \
-  cmake \
-  checkinstall \
-  pkg-config \
-  openssh-server \
-  zip \
-  unzip \
-  p7zip \
-  tmux \
-  htop \
-  iftop \
-  iotop \
-  tzdata \
-  libxmu6 \
-  libsm6 \
-  libxext-dev \
-  libxrender1 \
-  libgl1-mesa-glx
 
+# --- 安装系统依赖 ---
+RUN sed -i 's@/archive.ubuntu.com/@/mirrors.tuna.tsinghua.edu.cn/@g' /etc/apt/sources.list && \
+    apt update && apt install -y \
+    sudo \
+    wget \
+    curl \
+    vim \
+    git \
+    build-essential \
+    cmake \
+    checkinstall \
+    pkg-config \
+    openssh-server \
+    zip \
+    unzip \
+    p7zip \
+    tmux \
+    htop \
+    iftop \
+    iotop \
+    tzdata \
+    libxmu6 \
+    libsm6 \
+    libxext-dev \
+    libxrender1 \
+    libgl1-mesa-glx && \
+    # 清理APT缓存
+    apt clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install miniconda and change source
-RUN mkdir -p ~/miniconda
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda/miniconda.sh
-RUN bash ~/miniconda/miniconda.sh -b -u -p ~/miniconda
-RUN rm -rf ~/miniconda/miniconda.sh
-RUN ~/miniconda/bin/conda init bash
-ARG PATH=/root/miniconda/bin:$PATH
+# --- 安装Miniconda ---
+ENV PATH="/root/miniconda/bin:${PATH}"
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh && \
+    bash /tmp/miniconda.sh -b -u -p /root/miniconda && \
+    rm /tmp/miniconda.sh && \
+    /root/miniconda/bin/conda init bash && \
+    # 配置conda源
+    cat <<-EOF > ~/.condarc && \
+channels:
+  - defaults
+show_channel_urls: true
+default_channels:
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/msys2
+custom_channels:
+  conda-forge: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  pytorch: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+EOF
+    conda clean -i
 
-RUN echo "\
-channels:\n\
-  - defaults\n\
-show_channel_urls: true\n\
-default_channels:\n\
-  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main\n\
-  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r\n\
-  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/msys2\n\
-custom_channels:\n\
-  conda-forge: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud\n\
-  pytorch: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud\n" > ~/.condarc
+# --- 安装JupyterLab ---
+RUN conda install -c conda-forge jupyterlab -y && \
+    jupyter lab --generate-config && \
+    conda clean -i
 
-RUN conda clean -i
+# --- 系统和SSH配置 ---
+RUN # 创建工作目录
+    mkdir -p /root/workspace /root/share /root/public /var/run/sshd && \
+    # 配置SSH
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -ri 's/session required pam_loginuid.so/#session required pam_loginuid.so/g' /etc/pam.d/sshd && \
+    echo "root:123456" | chpasswd && \
+    # 设置时区
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
+    # 继承宿主机环境变量
+    echo 'for item in $(cat /proc/1/environ | tr "\0" "\n"); do export $item; done' >> /etc/profile
 
-# install jupyterlab
-RUN conda install -c conda-forge jupyterlab -y && jupyter lab --generate-config
-# Create workspace directory
-RUN mkdir /root/workspace
-# Create shared directory
-RUN mkdir /root/share
-# Create public directory
-RUN mkdir /root/public
-# SSH settings
-RUN mkdir /var/run/sshd
-RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-RUN sed -ri 's/session requried pam_loginuid.so/#session required pam_loginuid.so/g' /etc/pam.d/sshd
-RUN echo "root:123456" | chpasswd
-
-# Clean up all temp files
-RUN apt clean && rm -rf /tmp/* /var/tmp/* /var/lib/apt/lists/* /var/cache/apt/*
-
-# Set timezone
-ENV TZ=Asia/Shanghai
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
+# --- 拷贝脚本并设置权限 ---
 COPY ./init_container.sh /usr/local/bin/init_container.sh
 COPY ./lab.sh /root/lab.sh
-
-RUN chmod +x /root/lab.sh
-RUN chmod +x /usr/local/bin/init_container.sh
+RUN chmod +x /usr/local/bin/init_container.sh /root/lab.sh
 
 ENTRYPOINT ["/usr/local/bin/init_container.sh"]

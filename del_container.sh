@@ -1,76 +1,97 @@
 #!/bin/bash
 
-# 检查是否传入了名字参数
+# --- 配置 ---
+PORT_FILE="containers.txt"
+DATA_PREFIX="/data"
+
+# --- 函数定义 ---
+
+# 显示使用方法
+show_usage() {
+    echo "使用方法: bash del_container.sh <name> [--port] [--file] [--all]"
+    echo "  <name>:   容器名"
+    echo "  --port:   删除端口记录并关闭防火墙端口"
+    echo "  --file:   删除工作目录文件"
+    echo "  --all:    执行 --port 和 --file 的所有操作"
+}
+
+# 关闭防火墙端口
+close_firewall_port() {
+    local port=$1
+    if firewall-cmd --zone=public --query-port="${port}/tcp" >/dev/null 2>&1; then
+        firewall-cmd --zone=public --remove-port="${port}/tcp" --permanent >/dev/null 2>&1
+        echo "已关闭防火墙端口: ${port}/tcp"
+        return 0 # 表示有变动
+    fi
+    return 1 # 表示无变动
+}
+
+# 处理端口和防火墙
+handle_ports() {
+    local name=$1
+    [ ! -f "$PORT_FILE" ] && return
+
+    local port=$(grep "^$name " "$PORT_FILE" | awk '{print $2}')
+    if [ -n "$port" ]; then
+        echo "找到容器 '$name' 的端口: $port"
+        local changed=0
+        close_firewall_port "$port" && changed=1
+        close_firewall_port "$((port + 8000))" && changed=1
+        close_firewall_port "$((port + 6006))" && changed=1
+
+        [ "$changed" -eq 1 ] && firewall-cmd --reload >/dev/null 2>&1 && echo "防火墙规则已重新加载"
+
+        echo "正在从 $PORT_FILE 中移除 '$name' 的记录"
+        sed -i "/^$name /d" "$PORT_FILE"
+    else
+        echo "在 $PORT_FILE 中未找到 '$name' 的端口记录"
+    fi
+}
+
+# 删除工作目录文件
+handle_files() {
+    local name=$1
+    local data_dir="${DATA_PREFIX}/${name}"
+    local share_dir="${DATA_PREFIX}/share/${name}"
+
+    [ -d "$data_dir" ] && echo "正在删除目录: $data_dir" && rm -rf "$data_dir"
+    [ -d "$share_dir" ] && echo "正在删除目录: $share_dir" && rm -rf "$share_dir"
+}
+
+# --- 主逻辑 ---
+
+# 参数检查
 if [ -z "$1" ]; then
-    echo "Usage: bash del_container.sh <name> [--port] [--file] [--all]"
+    show_usage
     exit 1
 fi
 
-# 获取第一个参数 xxx
 NAME=$1
 CONTAINER_NAME="deep-$NAME"
+shift # 移除容器名参数，方便后续处理
 
-# 检查容器是否存在并删除
+# 删除Docker容器
 if docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME\$"; then
-    echo "Deleting Docker container: $CONTAINER_NAME"
+    echo "正在删除Docker容器: $CONTAINER_NAME"
     docker rm -f "$CONTAINER_NAME"
 else
-    echo "Docker container $CONTAINER_NAME not found."
+    echo "Docker容器 $CONTAINER_NAME 未找到"
 fi
 
-# 标志变量，用于确认是否有传入选项
+# 处理附加选项
 DELETE_PORT=false
 DELETE_FILE=false
 
-# 处理可选参数 --port, --file, --all
-shift
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --port)
-            DELETE_PORT=true
-            shift
-            ;;
-        --file)
-            DELETE_FILE=true
-            shift
-            ;;
-        --all)
-            DELETE_PORT=true
-            DELETE_FILE=true
-            shift
-            ;;
-        *)
-            echo "Unknown option: $1"
-            exit 1
-            ;;
+for arg in "$@"; do
+    case "$arg" in
+        --port) DELETE_PORT=true ;;
+        --file) DELETE_FILE=true ;;
+        --all) DELETE_PORT=true; DELETE_FILE=true ;;
+        *) echo "未知选项: $arg"; show_usage; exit 1 ;;
     esac
 done
 
-# 删除 containers.txt 文件中的一行内容
-if [ "$DELETE_PORT" = true ]; then
-    PORT_FILE="containers.txt"
-    if [ -f "$PORT_FILE" ]; then
-        echo "Removing entry for $NAME from $PORT_FILE"
-        sed -i "/^$NAME /d" "$PORT_FILE"
-    else
-        echo "$PORT_FILE not found."
-    fi
-fi
+[ "$DELETE_PORT" = true ] && handle_ports "$NAME"
+[ "$DELETE_FILE" = true ] && handle_files "$NAME"
 
-if [ "$DELETE_FILE" = true ]; then
-    DATA_DIR="/data/$NAME"
-    DATA_SHARE_DIR="/data/share/$NAME"
-    if [ -d "$DATA_DIR" ]; then
-        echo "Deleting folder: $DATA_DIR"
-        rm -rf "$DATA_DIR"
-    else
-        echo "Directory $DATA_DIR not found."
-    fi
-
-    if [ -d "$DATA_SHARE_DIR" ]; then
-        echo "Deleting folder: $DATA_SHARE_DIR"
-        rm -rf "$DATA_SHARE_DIR"
-    else
-        echo "Directory $DATA_SHARE_DIR not found."
-    fi
-fi
+echo "操作完成"
