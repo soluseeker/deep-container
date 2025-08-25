@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
+FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu24.04
 
 USER root
 
@@ -14,7 +14,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # --- 安装系统依赖 ---
 RUN sed -i 's@/archive.ubuntu.com/@/mirrors.tuna.tsinghua.edu.cn/@g' /etc/apt/sources.list && \
-    apt update && apt install -y \
+    apt-get update && apt-get install -y --no-install-recommends \
     sudo \
     wget \
     curl \
@@ -37,7 +37,10 @@ RUN sed -i 's@/archive.ubuntu.com/@/mirrors.tuna.tsinghua.edu.cn/@g' /etc/apt/so
     libsm6 \
     libxext-dev \
     libxrender1 \
-    libgl1-mesa-glx && \
+    # ubuntu2204
+    # libgl1-mesa-glx
+    # ubuntu2404
+    libglx-mesa0 && \
     # 清理APT缓存
     apt clean && \
     rm -rf /var/lib/apt/lists/*
@@ -49,7 +52,7 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -
     rm /tmp/miniconda.sh && \
     /root/miniconda/bin/conda init bash && \
     # 配置conda源
-    cat <<-EOF > ~/.condarc && \
+    cat <<-EOF > ~/.condarc
 channels:
   - defaults
 show_channel_urls: true
@@ -62,20 +65,19 @@ custom_channels:
   conda-forge: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
   pytorch: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
 EOF
-    conda clean -i
 
 # --- 安装JupyterLab ---
-RUN conda install -c conda-forge jupyterlab -y && \
-    jupyter lab --generate-config && \
-    conda clean -i
+RUN conda clean -i && \
+    conda install -c conda-forge jupyterlab -y && \
+    jupyter lab --generate-config
 
 # --- 系统和SSH配置 ---
-RUN # 创建工作目录
-    mkdir -p /root/workspace /root/share /root/public /var/run/sshd && \
+    # 创建工作目录
+RUN mkdir -p /root/workspace /root/share /root/public /var/run/sshd && \
     # 配置SSH
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
     sed -ri 's/session required pam_loginuid.so/#session required pam_loginuid.so/g' /etc/pam.d/sshd && \
-    echo "root:123456" | chpasswd && \
+    echo "root:deep.learning.3407!" | chpasswd && \
     # 设置时区
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
     # 继承宿主机环境变量

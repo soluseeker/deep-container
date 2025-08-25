@@ -19,7 +19,7 @@ show_usage() {
 # 根据CUDA版本获取Docker镜像名称
 get_docker_image() {
     case $1 in
-        "12.8") echo "cuda:12.8.1-cudnn-miniconda-ubuntu22.04" ;;
+        "12.8") echo "cuda:12.8.1-cudnn-miniconda-ubuntu24.04" ;;
         "12.6") echo "cuda:12.6.1-cudnn-miniconda-ubuntu22.04" ;;
         "12.4") echo "cuda:12.4.1-cudnn-miniconda-ubuntu22.04" ;;
         "12.1") echo "cuda:12.1.1-cudnn-miniconda-ubuntu22.04" ;;
