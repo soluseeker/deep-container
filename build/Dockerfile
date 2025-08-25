@@ -14,7 +14,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # --- 安装系统依赖 ---
 RUN sed -i 's@/archive.ubuntu.com/@/mirrors.tuna.tsinghua.edu.cn/@g' /etc/apt/sources.list && \
-    apt-get update && apt-get install -y --no-install-recommends \
+    apt update && apt install -y --no-install-recommends \
     sudo \
     wget \
     curl \
@@ -46,7 +46,7 @@ RUN sed -i 's@/archive.ubuntu.com/@/mirrors.tuna.tsinghua.edu.cn/@g' /etc/apt/so
     rm -rf /var/lib/apt/lists/*
 
 # --- 安装Miniconda ---
-ENV PATH="/root/miniconda/bin:${PATH}"
+ARG PATH="/root/miniconda/bin:${PATH}"
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh && \
     bash /tmp/miniconda.sh -b -u -p /root/miniconda && \
     rm /tmp/miniconda.sh && \
@@ -79,9 +79,8 @@ RUN mkdir -p /root/workspace /root/share /root/public /var/run/sshd && \
     sed -ri 's/session required pam_loginuid.so/#session required pam_loginuid.so/g' /etc/pam.d/sshd && \
     echo "root:deep.learning.3407!" | chpasswd && \
     # 设置时区
-    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
-    # 继承宿主机环境变量
-    echo 'for item in $(cat /proc/1/environ | tr "\0" "\n"); do export $item; done' >> /etc/profile
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+  
 
 # --- 拷贝脚本并设置权限 ---
 COPY ./init_container.sh /usr/local/bin/init_container.sh

@@ -48,7 +48,8 @@ cd /path/to/deep-container
 
 # 构建并标记镜像
 # Dockerfile 使用 'nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04' 作为基础镜像
-docker build -t cuda:12.4.1-cudnn-miniconda-ubuntu22.04 -f build/Dockerfile .
+cd build
+docker buildx build -t cuda:12.4.1-cudnn-miniconda-ubuntu22.04 .
 ```
 
 *注意: `run_container.sh` 脚本期望使用特定的镜像标签（例如 `cuda:12.4.1-cudnn-miniconda-ubuntu22.04`, `cuda:11.8.0-cudnn-miniconda-ubuntu22.04` 等）。您需要自己构建这些镜像，或者如果它们已存在于镜像仓库中，则从仓库拉取。*

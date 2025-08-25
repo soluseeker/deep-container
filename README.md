@@ -48,7 +48,8 @@ cd /path/to/deep-container
 
 # Build and tag the image
 # The Dockerfile uses 'nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04' as its base
-docker build -t cuda:12.4.1-cudnn-miniconda-ubuntu22.04 -f build/Dockerfile .
+cd build
+docker buildx build -t cuda:12.4.1-cudnn-miniconda-ubuntu22.04 .
 ```
 
 *Note: The `run_container.sh` script expects specific image tags (e.g., `cuda:12.4.1-cudnn-miniconda-ubuntu22.04`, `cuda:11.8.0-cudnn-miniconda-ubuntu22.04`, etc.). You need to build these images yourself or pull them from a registry if they already exist.*

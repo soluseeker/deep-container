@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # --- 配置 ---
-DEFAULT_CUDA_VERSION="12.4"
+DEFAULT_CUDA_VERSION="12.8"
 CONTAINERS_FILE="containers.txt"
 WORKSPACE_PREFIX="/data"
 BASE_PORT=23
@@ -20,8 +20,8 @@ show_usage() {
 get_docker_image() {
     case $1 in
         "12.8") echo "cuda:12.8.1-cudnn-miniconda-ubuntu24.04" ;;
-        "12.6") echo "cuda:12.6.1-cudnn-miniconda-ubuntu22.04" ;;
-        "12.4") echo "cuda:12.4.1-cudnn-miniconda-ubuntu22.04" ;;
+        "12.6") echo "cuda:12.6.3-cudnn-miniconda-ubuntu24.04" ;;
+        "12.4") echo "cuda:12.4.1-cudnn-miniconda-ubuntu24.04" ;;
         "12.1") echo "cuda:12.1.1-cudnn-miniconda-ubuntu22.04" ;;
         "11.8") echo "cuda:11.8.0-cudnn-miniconda-ubuntu22.04" ;;
         *) echo "" ;;
