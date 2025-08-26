@@ -37,7 +37,7 @@ handle_ports() {
         local changed=0
         close_firewall_port "$port" && changed=1
         close_firewall_port "$((port + 8000))" && changed=1
-        close_firewall_port "$((port + 6006))" && changed=1
+        close_firewall_port "$((port + 6000))" && changed=1
 
         [ "$changed" -eq 1 ] && firewall-cmd --reload >/dev/null 2>&1 && echo "防火墙规则已重新加载"
 

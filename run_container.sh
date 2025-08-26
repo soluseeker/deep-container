@@ -21,7 +21,7 @@ get_docker_image() {
     case $1 in
         "12.8") echo "cuda:12.8.1-cudnn-miniconda-ubuntu24.04" ;;
         "12.6") echo "cuda:12.6.3-cudnn-miniconda-ubuntu24.04" ;;
-        "12.4") echo "cuda:12.4.1-cudnn-miniconda-ubuntu24.04" ;;
+        "12.4") echo "cuda:12.4.1-cudnn-miniconda-ubuntu22.04" ;;
         "12.1") echo "cuda:12.1.1-cudnn-miniconda-ubuntu22.04" ;;
         "11.8") echo "cuda:11.8.0-cudnn-miniconda-ubuntu22.04" ;;
         *) echo "" ;;
@@ -105,13 +105,13 @@ docker run -itd --gpus all --ipc=host --net=host --restart=always \
 
 # 配置防火墙
 JUPYTER_PORT=$((PORT + 8000))
-LOGGING_PORT=$((PORT + 6006))
+LOGGING_PORT=$((PORT + 6000))
 open_firewall_port "$PORT"
 open_firewall_port "$JUPYTER_PORT"
 open_firewall_port "$LOGGING_PORT"
 
 # 输出最终信息
 echo -e "\n容器 'deep-${NAME}' 已成功启动!"
-echo "  SSH端口: $PORT"
-echo "  Jupyter端口: $JUPYTER_PORT"
-echo "  TensorBoard端口: $LOGGING_PORT"
+echo "  SSH 端口: $PORT"
+echo "  Jupyter 端口: $JUPYTER_PORT"
+echo "  TensorBoard 端口: $LOGGING_PORT"

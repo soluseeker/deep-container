@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu24.04
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
 USER root
 
@@ -38,9 +38,9 @@ RUN sed -i 's@/archive.ubuntu.com/@/mirrors.tuna.tsinghua.edu.cn/@g' /etc/apt/so
     libxext-dev \
     libxrender1 \
     # ubuntu2204
-    # libgl1-mesa-glx
+    libgl1-mesa-glx && \
     # ubuntu2404
-    libglx-mesa0 && \
+    # libglx-mesa0 && \
     # 清理APT缓存
     apt clean && \
     rm -rf /var/lib/apt/lists/*
@@ -56,7 +56,6 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -
 channels:
   - defaults
 show_channel_urls: true
-auto_activate: false
 default_channels:
   - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
   - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r
@@ -77,7 +76,7 @@ RUN mkdir -p /root/workspace /root/share /root/public /var/run/sshd && \
     # 配置SSH
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
     sed -ri 's/session required pam_loginuid.so/#session required pam_loginuid.so/g' /etc/pam.d/sshd && \
-    echo "root:deep.learning.3407!" | chpasswd && \
+    echo "root:123456" | chpasswd && \
     # 设置时区
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
   
